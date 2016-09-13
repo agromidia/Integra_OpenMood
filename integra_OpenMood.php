@@ -1,51 +1,12 @@
 <?php
-// define('CLI_SCRIPT', true);
-require_once '../config.php';
+
 require_once 'logMsg.php';
-
-$svrname    = $CFG->dbhost;
-$database   = $CFG->dbname;
-$username   = $CFG->dbuser;
-$password   = $CFG->dbpass;
-
-$con = new mysqli($svrname,$username,$password,$database);
-if ($con->connect_errno) { printf($con->connect_errno); exit();}
-
-require_once '../lib/phpmailer/PHPMailerAutoload.php';
-$mail = new PHPMailer;
-$mail->SMTPDebug = 3;
-$mail->isSMTP();
-$mail->isHTML(true);
-$mail->CharSet = 'UTF-8';
-$mail->SMTPAuth = true;
-$mail->Host = 'smtp.nutrimidia.com.br';
-$mail->Username = 'no-reply@nutrimidia.com.br';
-$mail->Password = 'KhN0x6j0';
-$mail->SMTPSecure = 'tls';
-$mail->port = 587;
-$mail->From = 'postmaster.assistemas@gmail.com';
-$mail->FromName = 'Inscrição do curso no Aulas a Distância.';
-$mail->AddCC('postmaster.assistemas@gmail.com', 'Postmaster AS Sistemas');
-
-if (date("H") >= 7 && date("H") <= 12) {
-    $tratamento = "Bom Dia";
-} elseif(date("H") > 12 && date("H") < 18) {
-    $tratamento = "Bom tarde";
-} elseif(date("H") >=  18) {
-    $tratamento = "Boa noite";
-}
+require_once 'conexao.php';
+require_once 'phpmailerConf.php';
+require_once 'funcoes.php';
 
 $query_view = "SELECT * FROM v_OpenMood";
 $result_select_view = $con->query($query_view);
-
-function tratanome($nome)
-{
-	$trataetapa1 = preg_replace("/&([a-z])[a-z]+;/i", "$1", htmlentities(rtrim($nome)));
-	$trataetapa2 = current(str_word_count($trataetapa1,2));
-	$tratafinal = strtolower($trataetapa2);
-
-	return $tratafinal;
-}
 
 while ($row = $result_select_view->fetch_array()) {
     $firstname = $row['firstname'];
@@ -59,9 +20,10 @@ while ($row = $result_select_view->fetch_array()) {
     $description = "Inscrito automaticamente pelo sistema.";
     $mnethostid = "1";
     $lang = "pt_br";
-    $nomecurso = utf8_encode($row['name']);
+    $nomecurso = utf8_encode($row['name_course']);
     $idnumber = $row['sku'];
-    $idUsuarioMoodle = $row['id_user_moodle'];
+    $idUsuarioMoodle = $row['userid_moodle'];
+    $courseid = $row['courseid_moodle'];
 
     setlocale(LC_ALL, "pt_BR.utf8");
     $datainicio =  strftime("%d de %B");
@@ -72,7 +34,11 @@ while ($row = $result_select_view->fetch_array()) {
 
     if ($sql_linha_result > 0)
     {
-        echo "<br>E-mail existe. ".$email." ".$idnumber." ".$idUsuarioMoodle;
+        echo "<br>E-mail existe. " .$email. " " .$idnumber. " " .$idUsuarioMoodle." ";
+
+        $result_courseid = $con->query("SELECT id FROM moodle.mdl_enrol WHERE courseid=`$courseid` AND enrol='manual'");
+        echo $result_courseid;
+
         // verifica se o e-mail existe e verifica se esta associado ao curso
         $sql_confereSku = $con->query("SELECT mue.userid AS useridUserEnrol from moodle.mdl_user_enrolments mue where mue.userid = $idUsuarioMoodle LIMIT 1");
         $sql_confereSku_result = $sql_confereSku->num_rows;
@@ -87,8 +53,10 @@ while ($row = $result_select_view->fetch_array()) {
             Curso: <strong>'.$nomecurso.'</strong><br />
             Prazo: <strong>'.$datainicio.'</strong>&nbsp;a&nbsp;<strong>'.$datafim.'</strong><br />
             e-Mail: <strong>'.$email.'</strong><br />';
+
             var_dump($clone_email);
             logMsg( "E-mail existe. ".$email." e não foi Acessado" );
+
             if(!$clone_email->send()) {echo 'Mailer Error: ' . $clone_email->ErrorInfo; exit;}
             echo 'Message has been sent <br>';
         }
@@ -96,11 +64,12 @@ while ($row = $result_select_view->fetch_array()) {
     else {
         echo "<br>E-mail não existe. ".$email."<br /><br />";
         $result_insert = $con->query("INSERT INTO mdl_user (firstname,lastname,email,username,password,confirmed,description,mnethostid,lang) VALUES ('{$firstname}','{$lastname}','{$email}','{$username}','{$password}','{$confirmed}','{$description}','{$mnethostid}','{$lang}')") or die ("<br> Nao foi inserido");
+
         $clone_email = clone $mail;
         $clone_email->addAddress($email);
         $clone_email->Subject = 'Olá '.$firstname.', aqui está sua conta do Aulas a Distância';
         $clone_email->Body    = '<p><img src="https://aulasadistancia.com.br/site/templates/ol_chranet/images/logo/logoEAD.png" border="0"></p>
-        '.$tratamento.' '.$firstname.', <br /><br />
+        '. cumprimento() .' '.$firstname.', <br /><br />
 
         &Eacute; com muita satisfa&ccedil;&atilde;o que informamos que voc&ecirc; foi cadastrado(a) na plataforma de cursos do Aulas a Dist&acirc;ncia, logo a baixo est&atilde;o os dados para o seu acesso.<br><br>
 
