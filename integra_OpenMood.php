@@ -20,50 +20,74 @@ while ($row = $result_select_view->fetch_array()) {
     $description = "Inscrito automaticamente pelo sistema.";
     $mnethostid = "1";
     $lang = "pt_br";
-    $nomecurso = utf8_encode($row['name_course']);
-    $idnumber = $row['sku'];
-    $idUsuarioMoodle = $row['userid_moodle'];
-    $courseid = $row['courseid_moodle'];
+    $nomecurso = utf8_encode($row['namecourse_open']);
+    $idnumber = $row['sku_idnumber'];
+    $idUsuarioMoodle = $row['userid_mood'];
+    $courseid = $row['courseid_mood'];
 
     setlocale(LC_ALL, "pt_BR.utf8");
     $datainicio =  strftime("%d de %B");
     $datafim = strftime("%d de %B de %Y", strtotime('+32 days'));
+
+
+    $timestamp_datainicio = strtotime('NOW');
+    $timestamp_datafinal = strtotime('+32 days');
+
+
+
 
     $sql_linha = $con->query("SELECT email FROM mdl_user WHERE email = '{$email}'");
     $sql_linha_result = $sql_linha->num_rows;
 
     if ($sql_linha_result > 0)
     {
-        echo "<br>E-mail existe. " .$email. " " .$idnumber. " " .$idUsuarioMoodle." ";
+        echo "<br>E-mail " .$email. " existe | SKU: ".$idnumber. " | ID Moodle " .$idUsuarioMoodle. " | ID Curso: ".$courseid." ";
 
-        $result_courseid = $con->query("SELECT id FROM moodle.mdl_enrol WHERE courseid=`$courseid` AND enrol='manual'");
-        echo $result_courseid;
+        // ======
+        $result_courseid = $con->query("SELECT id FROM moodle.mdl_enrol WHERE courseid=$courseid AND enrol='manual'") or die ($con->error);
+        $row = $result_courseid->fetch_assoc();
+        $mdl_enrol_id = $row['id'];
+
+        // Inscreve o aluno na tabela mdl_user_enrolments
+        $inserirAlunoCurso = $con->query("INSERT INTO moodle.mdl_user_enrolments (status,enrolid,userid,timestart,timeend,timecreated,timemodified) VALUES (0,$mdl_enrol_id,$idUsuarioMoodle,$timestamp_datainicio,$timestamp_datafinal,0,0)") or die ($con->error);
+
+        // ======
+        // Recupere o contexto do curso
+        $result_contextCurso = $con->query("SELECT id FROM moodle.mdl_context WHERE instanceid=$courseid AND contextlevel=50") or die ($con->error);
+        $row_context = $result_contextCurso->fetch_assoc();
+        $result_contexid = $row_context['id'];
+
+        // Efetua a matricula no curso
+        $efetua_matricula = $con->query("INSERT INTO moodle.mdl_role_assignments (roleid,contextid,userid,timemodified) VALUES (5,$result_contexid,$idUsuarioMoodle,0)") or die ($con->error);
+
+
 
         // verifica se o e-mail existe e verifica se esta associado ao curso
-        $sql_confereSku = $con->query("SELECT mue.userid AS useridUserEnrol from moodle.mdl_user_enrolments mue where mue.userid = $idUsuarioMoodle LIMIT 1");
+        $sql_confereSku = $con->query("SELECT mue.userid AS useridUserEnrol from moodle.mdl_user_enrolments mue where mue.userid = $idUsuarioMoodle LIMIT 1") or die ($con->error);
         $sql_confereSku_result = $sql_confereSku->num_rows;
         // Se trouxer 1 entra na condição e avisa ao suporte
         if (!$sql_confereSku_result > 0)
         {
-            $clone_email = clone $mail;
-            $clone_email->addAddress($email);
-            $clone_email->Subject = 'O aluno '.$firstname.', não acessou o curso';
-            $clone_email->Body    = '
-            O aluno '.$firstname.', ainda não acesou o curso <br /><br />
-            Curso: <strong>'.$nomecurso.'</strong><br />
-            Prazo: <strong>'.$datainicio.'</strong>&nbsp;a&nbsp;<strong>'.$datafim.'</strong><br />
-            e-Mail: <strong>'.$email.'</strong><br />';
+            // $clone_email = clone $mail;
+            // $clone_email->addAddress($email);
+            // $clone_email->Subject = 'O aluno '.$firstname.', não acessou o curso';
+            // $clone_email->Body    = '
+            // O aluno '.$firstname.', ainda não acesou o curso <br /><br />
+            // Curso: <strong>'.$nomecurso.'</strong><br />
+            // Prazo: <strong>'.$datainicio.'</strong>&nbsp;a&nbsp;<strong>'.$datafim.'</strong><br />
+            // e-Mail: <strong>'.$email.'</strong><br />';
 
-            var_dump($clone_email);
-            logMsg( "E-mail existe. ".$email." e não foi Acessado" );
+            // var_dump($clone_email);
+            // logMsg( "E-mail existe. ".$email." e não foi Acessado" );
 
-            if(!$clone_email->send()) {echo 'Mailer Error: ' . $clone_email->ErrorInfo; exit;}
-            echo 'Message has been sent <br>';
+            // if(!$clone_email->send()) {echo 'Mailer Error: ' . $clone_email->ErrorInfo; exit;}
+            // echo 'Message has been sent <br>';
+            echo "Curso não acessado.";
         }
     }
     else {
         echo "<br>E-mail não existe. ".$email."<br /><br />";
-        $result_insert = $con->query("INSERT INTO mdl_user (firstname,lastname,email,username,password,confirmed,description,mnethostid,lang) VALUES ('{$firstname}','{$lastname}','{$email}','{$username}','{$password}','{$confirmed}','{$description}','{$mnethostid}','{$lang}')") or die ("<br> Nao foi inserido");
+        $result_insert = $con->query("INSERT INTO moodle.mdl_user (firstname,lastname,email,username,password,confirmed,description,mnethostid,lang) VALUES ('{$firstname}','{$lastname}','{$email}','{$username}','{$password}','{$confirmed}','{$description}','{$mnethostid}','{$lang}')") or die ("<br> Nao foi inserido");
 
         $clone_email = clone $mail;
         $clone_email->addAddress($email);
