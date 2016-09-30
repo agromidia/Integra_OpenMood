@@ -1,7 +1,7 @@
 <?php
 
-// define('CLI_SCRIPT', true);
-require_once '../config.php';
+//define('CLI_SCRIPT', true);
+require_once '/var/www/html/moodle/config.php';
 
 $svrname    = $CFG->dbhost;
 $database   = $CFG->dbname;

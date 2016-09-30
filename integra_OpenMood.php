@@ -6,10 +6,9 @@ require_once 'conexao.php';
 require_once 'phpmailerConf.php';
 require_once 'funcoes.php';
 
-$query_view = "SELECT * FROM v_OpenMood";
-$result_select_view = $con->query($query_view);
+$query_view = $con->query("SELECT * FROM v_OpenMood");
 
-while ($row = $result_select_view->fetch_array())
+while ($row = $query_view->fetch_assoc())
 {
     $firstname = $row['firstname'];
     $lastname = $row['lastname'];
@@ -18,10 +17,9 @@ while ($row = $result_select_view->fetch_array())
     $password = MD5(strtolower($row['firstname']."_".date("y")));
     $nometratado = tratanome($row['firstname']);
     $passuser = $nometratado."_".date("y");
-    $confirmed = "1";
+    // $confirmed = "1";
     $description = "Inscrito automaticamente pelo sistema.";
-    $mnethostid = "1";
-    $lang = "pt_br";
+    // $mnethostid = "1";
     $nomecurso = utf8_encode($row['namecourse_open']);
     $idnumber = $row['sku_idnumber'];
     $idUsuarioMoodle = $row['userid_mood'];
@@ -34,119 +32,140 @@ while ($row = $result_select_view->fetch_array())
     $timestamp_datainicio = strtotime('NOW');
     $timestamp_datafinal = strtotime('+32 days');
 
-    $sql_linha = $con->query("SELECT email FROM mdl_user WHERE email='{$email}'");
+    $sql_linha = $con->query("SELECT email FROM moodle.mdl_user WHERE email='$email'");
     $sql_linha_result = $sql_linha->num_rows;
 
-    if ($sql_linha_result < 0)
+    if ($sql_linha_result === 0)
     {
         echo "<br>E-mail não existe. ".$email."<br /><br />";
-        $result_insert = $con->query("INSERT INTO moodle.mdl_user (firstname,lastname,email,username,password,confirmed,description,mnethostid,lang) VALUES ('{$firstname}','{$lastname}','{$email}','{$username}','{$password}','{$confirmed}','{$description}','{$mnethostid}','{$lang}')") or die ("<br> Nao foi inserido");
+        // // Rgistra Aluno Novo
+        $result_insert = $con->query("INSERT INTO moodle.mdl_user (auth,firstname,lastname,email,username,password,confirmed,description,mnethostid,country,lang)
+                                        VALUES ('manual','$firstname','$lastname','$email','$username','$password',1,'$description',1,'BR','pt_br')");
 
-        $clone_email = clone $mail;
-        $clone_email->addAddress($email);
-        $clone_email->Subject = 'Olá '.$firstname.', aqui está sua conta do Aulas a Distância';
-        $clone_email->Body    = '<p><img src="https://aulasadistancia.com.br/site/templates/ol_chranet/images/logo/logoEAD.png" border="0"></p>
-        '. cumprimento() .' '.$firstname.', <br /><br />
+        if ($result_insert === TRUE)
+        {
+            echo "Usuario Registrado";
 
-        &Eacute; com muita satisfa&ccedil;&atilde;o que informamos que voc&ecirc; foi cadastrado(a) na plataforma de cursos do Aulas a Dist&acirc;ncia, logo a baixo est&atilde;o os dados para o seu acesso.<br><br>
 
-        ----------------------------------<br /><br />
-        Curso: <strong>'.$nomecurso.'<br />
-        </strong>Prazo: <strong>'.$datainicio.'</strong>&nbsp;a&nbsp;<strong>'.$datafim.'<br />
-        </strong>URL: <a title="Aulas a Dist&acirc;ncia" href="https://aulasadistancia.com.br/site/" target="_blank">https://aulasadistancia.com.br/site/</a> <br />
-        clique em <em>"&Aacute;rea do Aluno"</em> e peencha com os dados a seguir<br /><br />
-        Dados de acesso.<br />
-        e-Mail: <strong>'.$email.'<br />
-        </strong>Senha: <strong>'.$passuser.'</strong> <br /><br />
-        ----------------------------------<br /><br />
+            // Recupera a chave da modalidade da matrícula do curso
+            $result_courseid = $con->query("SELECT id FROM moodle.mdl_enrol WHERE courseid = '$courseid' AND enrol='manual'");
+            $row = $result_courseid->fetch_assoc();
+            $mdl_enrol_id = $row['id'];
 
-        - A impress&atilde;o do certificado e o download dos materiais do curso devem ser realizados dentro do prazo acima.<br />
-        - A gera&ccedil;&atilde;o do certificado fora do prazo adquirido somente acontecer&aacute; mediante pagamento de uma taxa.<br />
-        - Para altera&ccedil;&otilde;es do seu nome entre no curso com os dados informados acima e localize a se&ccedil;&atilde;o Administra&ccedil;&atilde;o.<br />
-        - Clique em <em>"Minhas configura&ccedil;&otilde;es de perfil"</em> e em seguida clique em <em>"Modificar Perfil"</em>.<br />
-        - Fa&ccedil;a as altera&ccedil;&otilde;es desejadas e clique no bot&atilde;o <em>"Atualizar perfil"</em> no fim da p&aacute;gina.<br /><br />
+            // Recupera o contexto do curso.
+            $result_contextCurso = $con->query("SELECT id FROM moodle.mdl_context WHERE instanceid = '$courseid' AND contextlevel=50");
+            $row_context = $result_contextCurso->fetch_assoc();
+            $result_contexid = $row_context['id'];
 
-        Qualquer d&uacute;vida entre em contato com o suporte via chat online na tela inicial da plataforma ou pelo e-mail suporte@dietpro.com.br <br /><br />
-        Bons estudos!!!<br/><br/>
-        Atenciosamente.<br /><br />';
 
-        if(!$clone_email->send()) {echo 'Mailer Error: ' . $clone_email->ErrorInfo; exit;}
+            $last_idUser = $con->insert_id;
+            // enroll_to_course($courseid,$last_idUser);
 
-        echo 'Message has been sent <br>';
-        // var_dump($result_insert);
-        // print_r($mail);
+            // Inscreve o aluno na tabela mdl_user_enrolments
+            $inserirAlunoCurso = $con->query("INSERT INTO moodle.mdl_user_enrolments (status,enrolid,userid,timestart,timeend,timecreated,timemodified)
+                                               VALUES (0,'$mdl_enrol_id','$last_idUser','$timestamp_datainicio','$timestamp_datafinal','$timestamp_datainicio','$timestamp_datainicio')");
+
+            // Efetua a matricula no curso
+            $efetua_matricula = $con->query("INSERT INTO moodle.mdl_role_assignments (roleid,contextid,userid,timemodified)
+                                               VALUES (5,'$result_contexid','$last_idUser','$timestamp_datainicio')");
+
+            if ($inserirAlunoCurso === TRUE) {
+                echo "Aluno Cadastrado no Curso";
+            } else {
+                echo "<br>Erro: " . $inserirAlunoCurso . " " . $con->error ;
+            }
+
+            if ($efetua_matricula === TRUE) {
+                echo "Aluno Matriculado no Curso";
+            } else {
+                echo "<br>Erro: " . $efetua_matricula . " " . $con->error;
+            }
+        }
     }
     else
     {
-        echo "<br>E-mail " .$email. " existe | SKU: ".$idnumber. " | ID Moodle " .$idUsuarioMoodle. " | ID Curso: ".$courseid." -> ";
+        echo "<br />E-mail " .$email. " existe | SKU: ".$idnumber. " | ID Moodle " .$idUsuarioMoodle. " | ID Curso: ".$courseid." -> ";
 
         // Recupera a chave da modalidade da matrícula do curso
-        $result_courseid = $con->query("SELECT id FROM moodle.mdl_enrol WHERE courseid=$courseid AND enrol='manual'") or die ($con->error);
+        $result_courseid = $con->query("SELECT id FROM moodle.mdl_enrol WHERE courseid = '$courseid' AND enrol='manual'");
         $row = $result_courseid->fetch_assoc();
         $mdl_enrol_id = $row['id'];
+
         // Recupera o contexto do curso.
-        $result_contextCurso = $con->query("SELECT id FROM moodle.mdl_context WHERE instanceid=$courseid AND contextlevel=50") or die ($con->error);
+        $result_contextCurso = $con->query("SELECT id FROM moodle.mdl_context WHERE instanceid = '$courseid' AND contextlevel=50");
         $row_context = $result_contextCurso->fetch_assoc();
         $result_contexid = $row_context['id'];
+
         // Verifica se o aluno está matriculado no curso.
-        $verifica_inscricao = $con->query("SELECT enrolid FROM moodle.mdl_user_enrolments mmue WHERE mmue.userid=$idUsuarioMoodle AND mmue.enrolid=$mdl_enrol_id");
+        $verifica_inscricao = $con->query("SELECT enrolid FROM moodle.mdl_user_enrolments mmue WHERE mmue.userid = '$idUsuarioMoodle' AND mmue.enrolid = '$mdl_enrol_id' ");
         $result_verifica_inscricao = $verifica_inscricao->num_rows;
+
         // Verifica se o aluno concluiu o curso
-        $verifica_conclusao = $con->query("SELECT u.id, u.firstname,u.lastname, u.email,c.timecompleted FROM moodle.mdl_course_completions c INNER JOIN moodle.mdl_user u ON c.userid=u.id WHERE  c.timecompleted > 0  AND c.course=$courseid") or die ($con->error);
+        // $verifica_conclusao = $con->query("SELECT u.id, u.firstname,u.lastname, u.email,c.timecompleted FROM moodle.mdl_course_completions c INNER JOIN moodle.mdl_user u ON c.userid=u.id WHERE  c.timecompleted > 0  AND c.course = '$courseid'");
+        $verifica_conclusao = $con->query("SELECT COUNT(id) AS countrecord FROM mdl_course_completions WHERE userid='$idUsuarioMoodle' AND course='$courseid' AND timecompleted > 0");
         $row_verifica_conclusao = $verifica_conclusao->fetch_assoc();
-        $result_verifica_conclusao = $row_verifica_conclusao['timecompleted'];
+        $result_verifica_conclusao = $row_verifica_conclusao['countrecord'];
+
+        printf($result_verifica_conclusao);
 
         if ($result_verifica_inscricao > 0)
         {
             echo " | Inscrição já realizada.";
 
-            if ($result_verifica_conclusao == 0)
+            if ($result_verifica_conclusao > 0)
             {
 
-                echo " | Aluno Matriculado, mas não concluiu o curso";
+                echo " | Curso concluído";
             }
             else
             {
-                // var_dump($result_verifica_conclusao);
-                echo " | Curso concluído";
+                echo " | Aluno Matriculado, mas não concluiu o curso";
             }
         }
         else
         {
 
             echo " | Inscrição não realizada.";
+
+            // enroll_to_course($courseid,$idUsuarioMoodle);
+
             // // Inscreve o aluno na tabela mdl_user_enrolments
-            $inserirAlunoCurso = $con->query("INSERT INTO moodle.mdl_user_enrolments (status,enrolid,userid,timestart,timeend,timecreated,timemodified)
-                                                VALUES (0,$mdl_enrol_id,$idUsuarioMoodle,$timestamp_datainicio,$timestamp_datafinal,0,0)") or die ($con->error);
-            var_dump($inserirAlunoCurso);
+            // $inserirAlunoCurso = $con->query("INSERT INTO moodle.mdl_user_enrolments (status,enrolid,userid,timestart,timeend,timecreated,timemodified)
+            //                                    VALUES (0,'$mdl_enrol_id','$idUsuarioMoodle','$timestamp_datainicio','$timestamp_datafinal','$timestamp_datainicio','$timestamp_datainicio')");
+
             // // Efetua a matricula no curso
-            $efetua_matricula = $con->query("INSERT INTO moodle.mdl_role_assignments (roleid,contextid,userid,timemodified)
-                                                VALUES (5,$result_contexid,$idUsuarioMoodle,0)") or die ($con->error);
-            var_dump($efetua_matricula);
+            // $efetua_matricula = $con->query("INSERT INTO moodle.mdl_role_assignments (roleid,contextid,userid,timemodified)
+            //                                    VALUES (5,'$result_contexid','$idUsuarioMoodle','$timestamp_datainicio')");
+
+            // if ($inserirAlunoCurso === TRUE) {
+            //     echo "Aluno Cadastrado no Curso";
+            // } else {
+            //     echo "<br>Erro: " . $inserirAlunoCurso . " " . $con->error ;
+            // }
+
+            // if ($efetua_matricula === TRUE) {
+            //     echo "Aluno Matriculado no Curso";
+            // } else {
+            //     echo "<br>Erro: " . $efetua_matricula . " " . $con->error;
+            // }
         }
 
         // verifica se o e-mail existe e verifica se esta associado ao curso
-        $sql_confereSku = $con->query("SELECT mue.userid AS useridUserEnrol from moodle.mdl_user_enrolments mue where mue.userid=$idUsuarioMoodle LIMIT 1") or die ($con->error);
+        $sql_confereSku = $con->query("SELECT mue.userid AS useridUserEnrol from moodle.mdl_user_enrolments mue where mue.userid = '$idUsuarioMoodle' LIMIT 1");
+        // $sql_confereSku = $con->query("SELECT COUNT(id) AS countrecord FROM mdl_course_completions WHERE userid='$idUsuarioMoodle' AND course='$courseid' AND timestarted = 0");
         $sql_confereSku_result = $sql_confereSku->num_rows;
+
         // Se trouxer 1 entra na condição e avisa ao suporte
-        if (!$sql_confereSku_result > 0)
+        if ($sql_confereSku !== 0 )
         {
             echo " | Curso não acessado.";
-            // $clone_email = clone $mail;
-            // $clone_email->addAddress($email);
-            // $clone_email->Subject = 'O aluno '.$firstname.', não acessou o curso';
-            // $clone_email->Body    = '
-            // O aluno '.$firstname.', ainda não acesou o curso <br /><br />
-            // Curso: <strong>'.$nomecurso.'</strong><br />
-            // Prazo: <strong>'.$datainicio.'</strong>&nbsp;a&nbsp;<strong>'.$datafim.'</strong><br />
-            // e-Mail: <strong>'.$email.'</strong><br />';
-            // var_dump($clone_email);
-            // logMsg( "E-mail existe. ".$email." e não foi Acessado" );
-            // if(!$clone_email->send()) {echo 'Mailer Error: ' . $clone_email->ErrorInfo; exit;}
-            // echo 'Message has been sent <br>';
+
+        }
+        else {
+            echo "Iniciou o Curso";
         }
 
     }
 }
 
-mysqli_free_result($result_select_view);
+mysqli_free_result($query_view);
