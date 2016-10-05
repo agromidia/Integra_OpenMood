@@ -1,10 +1,10 @@
 <?php
 header("Content-type: text/html; charset=utf-8");
 
+require_once 'funcoes.php';
 require_once 'logMsg.php';
 require_once 'conexao.php';
 require_once 'phpmailerConf.php';
-require_once 'funcoes.php';
 
 // BUSCA OS DADOS DO OPENCART NA VIEW
 $query_view = $con->query("SELECT * FROM v_OpenMood");
@@ -15,12 +15,10 @@ while ($row = $query_view->fetch_assoc())
     $lastname = $row['lastname'];
     $email = $row['email'];
     $username = $email;
-    $password = MD5(strtolower($row['firstname']."_".date("y")));
+    $password = password_hash(strtolower($row['firstname']."_".date("y")), PASSWORD_DEFAULT);
     $nometratado = tratanome($row['firstname']);
     $passuser = $nometratado."_".date("y");
-    // $confirmed = "1";
     $description = "Inscrito automaticamente pelo sistema.";
-    // $mnethostid = "1";
     $nomecurso = utf8_encode($row['namecourse_open']);
     $idnumber = $row['sku_idnumber'];
     $idUsuarioMoodle = $row['userid_mood'];
@@ -33,7 +31,8 @@ while ($row = $query_view->fetch_assoc())
     $timestamp_datainicio = strtotime('NOW');
     $timestamp_datafinal = strtotime('+32 days');
 
-    // VERIFICA SE O EMAIL JÁ ESTA CADASTRADO
+    // VERIFICA SE OS USUÁIOS ESTÃO CADASTRADOS NA TABELA mdl_user DO MOODLE E SE CORRESPONDEM OS EMAILS DA view v_OpenMood.
+
     $sql_linha = $con->query("SELECT email FROM moodle.mdl_user WHERE email='$email'");
     $sql_linha_result = $sql_linha->num_rows;
 
@@ -41,15 +40,14 @@ while ($row = $query_view->fetch_assoc())
     {
         echo "<br>E-mail não existe. ".$email."<br /><br />";
 
-        // SE NAO TIVER, CADASTRA O ALUNO
-        // // Rgistra Aluno Novo
-        $result_insert = $con->query("INSERT INTO moodle.mdl_user (auth,firstname,lastname,email,username,password,confirmed,description,mnethostid,country,lang)
-                                        VALUES ('manual','$firstname','$lastname','$email','$username','$password',1,'$description',1,'BR','pt_br')");
+        // SE NAO ESTIVER, CADASTRA O ALUNO
+        // // Registra Aluno Novo
+        $result_insert = $con->query("INSERT INTO moodle.mdl_user (auth,confirmed,mnethostid,username,password,firstname,lastname,email,description,country,lang)
+                                        VALUES ('manual',1,1,'$username','$password','$firstname','$lastname','$email','$description','BR','pt_br')");
 
         if ($result_insert === TRUE)
         {
             echo " Usuario Registrado ";
-
 
             // Recupera a chave da modalidade da matrícula do curso
             $result_courseid = $con->query("SELECT id FROM moodle.mdl_enrol WHERE courseid = '$courseid' AND enrol='manual'");
@@ -61,11 +59,9 @@ while ($row = $query_view->fetch_assoc())
             $row_context = $result_contextCurso->fetch_assoc();
             $result_contexid = $row_context['id'];
 
-
             $last_idUser = $con->insert_id;
-            // enroll_to_course($courseid,$last_idUser);
 
-        // SE O CADASTRO FOR BEM SUCEDIDO, INSERI O ALUNO NO CURSO
+            // SE O CADASTRO FOR BEM SUCEDIDO, INSERI O ALUNO NO CURSO
 
             // Inscreve o aluno na tabela mdl_user_enrolments
             $inserirAlunoCurso = $con->query("INSERT INTO moodle.mdl_user_enrolments (status,enrolid,userid,timestart,timeend,timecreated,timemodified)
@@ -88,7 +84,7 @@ while ($row = $query_view->fetch_assoc())
             }
         }
     }
-    else
+    else // SE O ALUNO JA ESTIVER MATRICULADO MAS NAO ESTIVER EM NENHUM CURSO, FAZ A VERIFICAÇÃO POR CURSO E PERÍODO VIGENTE
     {
         echo "<br />E-mail " .$email. " existe | SKU: ".$idnumber. " | ID Moodle " .$idUsuarioMoodle. " | ID Curso: ".$courseid." -> ";
 
@@ -104,7 +100,6 @@ while ($row = $query_view->fetch_assoc())
 
         // VERIFICA SE O ALUNO ESTA MATRICULADO NO CURSO
 
-        // $verifica_inscricao = $con->query("SELECT enrolid FROM moodle.mdl_user_enrolments mmue WHERE mmue.userid = '$idUsuarioMoodle' AND mmue.enrolid = '$mdl_enrol_id' ");
         $verifica_inscricao = $con->query("SELECT me.courseid, mue.userid FROM mdl_user_enrolments mue
                                             INNER JOIN mdl_user mu ON mu.id = mue.userid
                                             INNER JOIN mdl_enrol me ON mue.enrolid = me.id
@@ -112,16 +107,13 @@ while ($row = $query_view->fetch_assoc())
 
         $result_verifica_inscricao = $verifica_inscricao->num_rows;
 
-        // $verifica_conclusao = $con->query("SELECT u.id, u.firstname,u.lastname, u.email,c.timecompleted FROM moodle.mdl_course_completions c INNER JOIN moodle.mdl_user u ON c.userid=u.id WHERE  c.timecompleted > 0  AND c.course = '$courseid'");
-        // $verifica_conclusao = $con->query("SELECT COUNT(id) AS countrecord FROM mdl_course_completions WHERE userid='$idUsuarioMoodle' AND course='$courseid' AND timecompleted > 0");
-
         // VERIFICA O STATUR DO ALUNO NO CURSO
 
         $verifica_conclusao = $con->query("SELECT COUNT(ue.timeend) AS countrecord
                                             FROM mdl_user_enrolments ue
                                             INNER JOIN mdl_enrol e ON ue.enrolid=e.id
                                             INNER JOIN mdl_user u ON u.id=ue.userid
-                                            WHERE e.courseid='$courseid' AND u.id='$idUsuarioMoodle' AND ue.timeend > NOW()");
+                                            WHERE e.courseid='$courseid' AND u.id='$idUsuarioMoodle' AND ue.timeend > NOW() AND ue.timeend != 0");
 
         $row_verifica_conclusao = $verifica_conclusao->fetch_assoc();
         $result_verifica_conclusao = $row_verifica_conclusao['countrecord'];
@@ -132,7 +124,7 @@ while ($row = $query_view->fetch_assoc())
                                             FROM mdl_user_enrolments ue
                                             INNER JOIN mdl_enrol e ON ue.enrolid=e.id
                                             INNER JOIN mdl_user u ON u.id=ue.userid
-                                            WHERE e.courseid='$courseid' AND u.id='$idUsuarioMoodle' AND ue.timeend < NOW()");
+                                            WHERE e.courseid='$courseid' AND u.id='$idUsuarioMoodle' AND ue.timeend < NOW() AND ue.timeend != 0");
 
         $row_verifica_validade = $verifica_validade->fetch_assoc();
         $row_validade = $row_verifica_validade['timeend'];
@@ -144,27 +136,22 @@ while ($row = $query_view->fetch_assoc())
 
             if ($row_validade > (strtotime(date("Y-m-d H:i:s")))) // CONDIÇÃO SE ESTIVER NO PERÍODO VIGENTE - SE CONCLUIU OU NÃO
             {
-
-                echo " | Curso concluído ";
+                echo " | Aluno matriculado, mas não concluiu o curso ou periodo não venceu ";
             }
             else
             {
-                echo " | Aluno Matriculado, mas não concluiu o curso ";
+                echo " | O prazo do curso venceu.";
             }
         }
-        else // SE O EMAIL EXISTIR E NÃO ESTIVER MATRICULADO
+        else // SE O EMAIL EXISTIR E NÃO ESTIVER MATRICULADO EM NENHUM CURSO
         {
-
             echo " | Inscrição não realizada. ";
 
-            // INSERE O ALUNO NO CURSO
-
-            // enroll_to_course($courseid,$idUsuarioMoodle);
+            // INSERE O ALUNO NO CURSO E EFETUA A MATRICULA
 
             // Inscreve o aluno na tabela mdl_user_enrolments
             $inserirAlunoCurso = $con->query("INSERT INTO moodle.mdl_user_enrolments (status,enrolid,userid,timestart,timeend,timecreated,timemodified)
                                                VALUES (0,'$mdl_enrol_id','$idUsuarioMoodle','$timestamp_datainicio','$timestamp_datafinal','$timestamp_datainicio','$timestamp_datainicio')");
-
             // Efetua a matricula no curso
             $efetua_matricula = $con->query("INSERT INTO moodle.mdl_role_assignments (roleid,contextid,userid,timemodified)
                                                VALUES (5,'$result_contexid','$idUsuarioMoodle','$timestamp_datainicio')");
@@ -199,5 +186,5 @@ while ($row = $query_view->fetch_assoc())
 
     }
 }
-
 mysqli_free_result($query_view);
+

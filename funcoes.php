@@ -47,3 +47,10 @@ function enroll_to_course($courseid, $userid, $roleid=5, $extendbase=3, $extendp
 
     return $enrolled;
 }
+
+function vd($data)
+{
+    echo '<pre>';
+    var_dump($data);
+    echo '</pre>';
+}
