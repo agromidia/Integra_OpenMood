@@ -21,36 +21,55 @@ function cumprimento()
     return $tratamento;
 }
 
-// enroll student to course (roleid = 5 is student role)
-function enroll_to_course($courseid, $userid, $roleid=5, $extendbase=3, $extendperiod=0)  {
-    global $DB;
-
-    $instance = $DB->get_record('enrol', array('courseid'=>$courseid, 'enrol'=>'manual'), '*', MUST_EXIST);
-    $course = $DB->get_record('course', array('id'=>$instance->courseid), '*', MUST_EXIST);
-    $today = time();
-    $today = make_timestamp(date('Y', $today), date('m', $today), date('d', $today), 0, 0, 0);
-
-    if(!$enrol_manual = enrol_get_plugin('manual')) { throw new coding_exception('Can not instantiate enrol_manual'); }
-    switch($extendbase) {
-        case 2:
-            $timestart = $course->startdate;
-            break;
-        case 3:
-        default:
-            $timestart = $today;
-            break;
-    }
-    if ($extendperiod <= 0) { $timeend = strtotime('+32 days'); }   // extendperiod are seconds
-    else { $timeend = $timestart + $extendperiod; }
-    $enrolled = $enrol_manual->enrol_user($instance, $userid, $roleid, $timestart, $timeend);
-    add_to_log($course->id, 'course', 'enrol', '../enrol/users.php?id='.$course->id, $course->id);
-
-    return $enrolled;
-}
-
 function vd($data)
 {
     echo '<pre>';
     var_dump($data);
     echo '</pre>';
+}
+
+function cadastraAluno($username,$password,$firstname,$lastname,$email,$description)
+{
+    
+    global $con;
+    $result_insert = $con->query("INSERT INTO moodle.mdl_user (auth,confirmed,mnethostid,username,password,firstname,lastname,email,description,country,lang)
+                                    VALUES ('manual',1,1,'$username','$password','$firstname','$lastname','$email','$description','BR','pt_br')");
+    if ($result_insert === TRUE)
+    {
+        echo " Usuario Registrado ";
+    }
+    else
+    {
+        echo "<br>Erro: ". $con->error;
+    }
+}
+
+function cadastraAlunoCurso($mdl_enrol_id,$last_idUser,$timestamp_datainicio,$timestamp_datafinal,$timestamp_datainicio,$timestamp_datainicio)
+{
+    global $con;
+        // Inscreve o aluno na tabela mdl_user_enrolments
+        $inserirAlunoCurso = $con->query("INSERT INTO moodle.mdl_user_enrolments (status,enrolid,userid,timestart,timeend,timecreated,timemodified)
+                                           VALUES (0,'$mdl_enrol_id','$last_idUser','$timestamp_datainicio','$timestamp_datafinal','$timestamp_datainicio','$timestamp_datainicio')");
+
+        if ($inserirAlunoCurso === TRUE) {
+            echo " Aluno Cadastrado no Curso ";
+        } else {
+            echo "<br>Erro: ", $con->error;
+        }
+}
+
+
+function efetuaMatriculaAluno($result_contexid,$last_idUser,$timestamp_datainicio)
+{
+    global $con;
+
+        // Efetua a matricula no curso
+        $efetua_matricula = $con->query("INSERT INTO moodle.mdl_role_assignments (roleid,contextid,userid,timemodified)
+                                           VALUES (5,'$result_contexid','$last_idUser','$timestamp_datainicio')");
+
+        if ($efetua_matricula === TRUE) {
+            echo " Aluno Matriculado no Curso ";
+        } else {
+            echo "<br>Erro: ", $con->error;
+        }
 }
