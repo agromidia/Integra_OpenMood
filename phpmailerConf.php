@@ -1,8 +1,12 @@
 <?php
 
 require_once '../lib/phpmailer/PHPMailerAutoload.php';
+require_once '../lib/phpmailer/class.smtp.php';
+
 $mail = new PHPMailer;
+
 $mail->SMTPDebug = 3;
+
 $mail->isSMTP();
 $mail->isHTML(true);
 $mail->CharSet = 'UTF-8';

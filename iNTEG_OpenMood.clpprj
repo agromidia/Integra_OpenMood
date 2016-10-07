@@ -1,3 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project name="Z:\integra_OpenMood\iNTEG_OpenMood.clpprj">
-	<settings><PM_URL><![CDATA[C:/Users/msc.ASSISTEMAS/AppData/Roaming/ClPhpEd/Projects/]]></PM_URL><PM_HOME_URL><![CDATA[C:/Users/msc.ASSISTEMAS/AppData/Roaming/ClPhpEd/Projects/]]></PM_HOME_URL><PM_LIBS><![CDATA[]]></PM_LIBS></settings></project>
+	<settings><PM_URL><![CDATA[C:/Users/msc.ASSISTEMAS/AppData/Roaming/ClPhpEd/Projects/]]></PM_URL><PM_HOME_URL><![CDATA[C:/Users/msc.ASSISTEMAS/AppData/Roaming/ClPhpEd/Projects/]]></PM_HOME_URL><PM_LIBS><![CDATA[]]></PM_LIBS><PM_FTP_CONNECTION><![CDATA[]]></PM_FTP_CONNECTION><PM_FTP_DIR><![CDATA[]]></PM_FTP_DIR><PM_FTP_UPLOAD_ON_SAVE><![CDATA[INT:0]]></PM_FTP_UPLOAD_ON_SAVE></settings><removed value=";"/><added value=""/><lastopfiles>
+		<file name="Z:\integra_OpenMood\integra_OpenMood.php"/>
+		<file name="Z:\integra_OpenMood\funcoes.php"/>
+		<file name="Z:\integra_OpenMood\phpmailerConf.php"/>
+		<file name="Z:\integra_OpenMood\conexao.php"/>
+	</lastopfiles>
+	<errors version="5.3">
+	</errors>
+	<cakedata>
+	</cakedata>
+	<dplmenupath>
+	</dplmenupath><laravael>
+	</laravael><smartyassings>
+	</smartyassings><twigtemplate>
+	</twigtemplate><yiidata>
+	</yiidata>
+	<todoblock>
+	</todoblock>
+	<filescache>
+		<file name="Z:\integra_OpenMood\class\config.php" crc="1474473388"/>
+		<file name="Z:\integra_OpenMood\teste.php" crc="1475526930"/>
+		<file name="Z:\integra_OpenMood\phpmailerConf.php" crc="1475865520"/>
+		<file name="Z:\integra_OpenMood\notas.txt" crc="1474984850"/>
+		<file name="Z:\integra_OpenMood\logMsg.php" crc="1475269024"/>
+		<file name="Z:\integra_OpenMood\integra_OpenMood.php" crc="1475868745"/>
+		<file name="Z:\integra_OpenMood\funcoes.php" crc="1475865616"/>
+		<file name="Z:\integra_OpenMood\conexao.php" crc="1474546278"/>
+	</filescache>
+</project>
