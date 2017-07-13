@@ -30,11 +30,10 @@ function vd($data)
 
 function cadastraAluno($username,$password,$firstname,$lastname,$email,$description)
 {
-    
     global $con;
-    
+
     $result_insert = $con->query("INSERT INTO moodle.mdl_user (auth,confirmed,mnethostid,username,password,firstname,lastname,email,description,country,lang)
-                                    VALUES ('manual',1,1,'$username','$password','$firstname','$lastname','$email','$description','BR','pt_br')");
+                                  	   VALUES ('manual',1,1,'$username','$password','$firstname','$lastname','$email','$description','BR','pt_br')");
     if ($result_insert === TRUE)
     {
         echo " Usuario Registrado ";
@@ -51,7 +50,7 @@ function cadastraAlunoCurso($mdl_enrol_id,$last_idUser,$timestamp_datainicio,$ti
 
     // Inscreve o aluno na tabela mdl_user_enrolments
     $inserirAlunoCurso = $con->query("INSERT IGNORE INTO moodle.mdl_user_enrolments (status,enrolid,userid,timestart,timeend,timecreated,timemodified)
-                                       VALUES (0,'$mdl_enrol_id','$last_idUser','$timestamp_datainicio','$timestamp_datafinal','$timestamp_datainicio','$timestamp_datainicio')");
+                                      VALUES (0,'$mdl_enrol_id','$last_idUser','$timestamp_datainicio','$timestamp_datafinal','$timestamp_datainicio','$timestamp_datainicio')");
 
     if ($inserirAlunoCurso === TRUE) {
         echo " Aluno Cadastrado no Curso ";
@@ -60,6 +59,48 @@ function cadastraAlunoCurso($mdl_enrol_id,$last_idUser,$timestamp_datainicio,$ti
     }
 }
 
+// FUNÇÃO PARA SUBSTITUIR A DE CIMA
+// // enroll student to course (roleid = 5 is student role)
+// function enroll_to_course($courseid, $userid, $roleid=5, $extendbase=3, $extendperiod=0)
+// {
+//     global $DB;
+
+//     $instance = $DB->get_record('enrol', array('courseid'=>$courseid, 'enrol'=>'manual'), '*', MUST_EXIST);
+//     $course = $DB->get_record('course', array('id'=>$instance->courseid), '*', MUST_EXIST);
+//     $today = time();
+//     $today = make_timestamp(date('Y', $today), date('m', $today), date('d', $today), 0, 0, 0);
+
+//     if(!$enrol_manual = enrol_get_plugin('manual'))
+//     {
+//         throw new coding_exception('Can not instantiate enrol_manual');
+//     }
+
+//     switch($extendbase)
+//     {
+//         case 2:
+//             $timestart = $course->startdate;
+//             break;
+//         case 3:
+//         default:
+//             $timestart = $today;
+//             break;
+//     }
+//     // extendperiod are seconds
+//     if ($extendperiod <= 0)
+//     {
+//         $timeend = 0;
+//     }
+//     else
+//     {
+//         $timeend = $timestart + $extendperiod;
+//     }
+
+//     $enrolled = $enrol_manual->enrol_user($instance, $userid, $roleid, $timestart, $timeend);
+
+//     add_to_log($course->id, 'course', 'enrol', '../enrol/users.php?id='.$course->id, $course->id);
+
+//     return $enrolled;
+// }
 
 function efetuaMatriculaAluno($result_contexid,$last_idUser,$timestamp_datainicio)
 {
@@ -67,7 +108,7 @@ function efetuaMatriculaAluno($result_contexid,$last_idUser,$timestamp_datainici
 
     // Efetua a matricula no curso
     $efetua_matricula = $con->query("INSERT IGNORE INTO moodle.mdl_role_assignments (roleid,contextid,userid,timemodified)
-                                       VALUES (5,'$result_contexid','$last_idUser','$timestamp_datainicio')");
+                                     VALUES (5,'$result_contexid','$last_idUser','$timestamp_datainicio')");
 
     if ($efetua_matricula === TRUE) {
         echo " Aluno Matriculado no Curso ";
@@ -79,62 +120,61 @@ function efetuaMatriculaAluno($result_contexid,$last_idUser,$timestamp_datainici
 //function emailAlunoESuporte($email,$firstname,$lastname,$nometratado,$nomecurso,$datainicio,$datafim,$passuser,$mail=array())
 //{
 //    $mail=NULL;
-        
-    /*$clone_email = clone $mail; 
-    
+
+    /*$clone_email = clone $mail;
+
     vd($clone_email);
-    
-    $clone_email->addAddress($email); 
-    $clone_email->Subject = 'Olá '.$firstname.', aqui está sua conta do Aulas a Distância'; 
-    $clone_email->Body    = '<p><img src="https://aulasadistancia.com.br/site/templates/ol_chranet/images/logo/logoEAD.png" border="0"></p> 
-    '.cumprimento().' '.$firstname.', <br /><br /> 
 
-    &Eacute; com muita satisfa&ccedil;&atilde;o que informamos que voc&ecirc; foi cadastrado(a) na plataforma de cursos do Aulas a Dist&acirc;ncia, logo a baixo est&atilde;o os dados para o seu acesso.<br><br> 
+    $clone_email->addAddress($email);
+    $clone_email->Subject = 'Olá '.$firstname.', aqui está sua conta do Aulas a Distância';
+    $clone_email->Body    = '<p><img src="https://aulasadistancia.com.br/site/templates/ol_chranet/images/logo/logoEAD.png" border="0"></p>
+    '.cumprimento().' '.$firstname.', <br /><br />
 
-    ----------------------------------<br /><br /> 
-    Curso: <strong>'.$nomecurso.'<br /> 
-    </strong>Prazo: <strong>'.$datainicio.'</strong>&nbsp;a&nbsp;<strong>'.$datafim.'<br /> 
-    </strong>URL: <a title="Aulas a Dist&acirc;ncia" href="https://aulasadistancia.com.br/site/" target="_blank">https://aulasadistancia.com.br/site/</a> <br /> 
-    clique em <em>"&Aacute;rea do Aluno"</em> e peencha com os dados a seguir<br /><br /> 
-    Dados de acesso.<br /> 
-    e-Mail: <strong>'.$email.'<br /> 
-    </strong>Senha: <strong>'.$passuser.'</strong> <br /><br /> 
-    ----------------------------------<br /><br /> 
+    &Eacute; com muita satisfa&ccedil;&atilde;o que informamos que voc&ecirc; foi cadastrado(a) na plataforma de cursos do Aulas a Dist&acirc;ncia, logo a baixo est&atilde;o os dados para o seu acesso.<br><br>
 
-    - A impress&atilde;o do certificado e o download dos materiais do curso devem ser realizados dentro do prazo acima.<br /> 
-    - A gera&ccedil;&atilde;o do certificado fora do prazo adquirido somente acontecer&aacute; mediante pagamento de uma taxa.<br /> 
-    - Para altera&ccedil;&otilde;es do seu nome entre no curso com os dados informados acima e localize a se&ccedil;&atilde;o Administra&ccedil;&atilde;o.<br /> 
-    - Clique em <em>"Minhas configura&ccedil;&otilde;es de perfil"</em> e em seguida clique em <em>"Modificar Perfil"</em>.<br /> 
-    - Fa&ccedil;a as altera&ccedil;&otilde;es desejadas e clique no bot&atilde;o <em>"Atualizar perfil"</em> no fim da p&aacute;gina.<br /><br /> 
+    ----------------------------------<br /><br />
+    Curso: <strong>'.$nomecurso.'<br />
+    </strong>Prazo: <strong>'.$datainicio.'</strong>&nbsp;a&nbsp;<strong>'.$datafim.'<br />
+    </strong>URL: <a title="Aulas a Dist&acirc;ncia" href="https://aulasadistancia.com.br/site/" target="_blank">https://aulasadistancia.com.br/site/</a> <br />
+    clique em <em>"&Aacute;rea do Aluno"</em> e peencha com os dados a seguir<br /><br />
+    Dados de acesso.<br />
+    e-Mail: <strong>'.$email.'<br />
+    </strong>Senha: <strong>'.$passuser.'</strong> <br /><br />
+    ----------------------------------<br /><br />
 
-    Qualquer d&uacute;vida entre em contato com o suporte via chat online na tela inicial da plataforma ou pelo e-mail suporte@dietpro.com.br <br /><br /> 
-    Bons estudos!!!<br/><br/> 
+    - A impress&atilde;o do certificado e o download dos materiais do curso devem ser realizados dentro do prazo acima.<br />
+    - A gera&ccedil;&atilde;o do certificado fora do prazo adquirido somente acontecer&aacute; mediante pagamento de uma taxa.<br />
+    - Para altera&ccedil;&otilde;es do seu nome entre no curso com os dados informados acima e localize a se&ccedil;&atilde;o Administra&ccedil;&atilde;o.<br />
+    - Clique em <em>"Minhas configura&ccedil;&otilde;es de perfil"</em> e em seguida clique em <em>"Modificar Perfil"</em>.<br />
+    - Fa&ccedil;a as altera&ccedil;&otilde;es desejadas e clique no bot&atilde;o <em>"Atualizar perfil"</em> no fim da p&aacute;gina.<br /><br />
+
+    Qualquer d&uacute;vida entre em contato com o suporte via chat online na tela inicial da plataforma ou pelo e-mail suporte@dietpro.com.br <br /><br />
+    Bons estudos!!!<br/><br/>
     Atenciosamente.<br /><br />
     Alan Pereira<br/>
     relaciomanento com Cliente<br/>
     relacionamento.cliente@assistemas.com.br<br/>
-    (31) 3891-9898'; 
+    (31) 3891-9898';
 
     if(!$clone_email->send())
     {
         echo 'Mailer Error: ' . $clone_email->ErrorInfo;
         exit;
-    } 
-    echo 'Message has been sent <br>';*/ 
+    }
+    echo 'Message has been sent <br>';*/
 //}
 
 function emailSuporte()
 {
-   /* $clone_email = clone $mail; 
-    
-    $clone_email->addAddress($email); 
-    $clone_email->Subject = 'O aluno '.$firstname.', não acessou o curso'; 
-    $clone_email->Body    = ' 
-    O aluno '.$firstname.', ainda não acesou o curso <br /><br /> 
-    Curso: <strong>'.$nomecurso.'</strong><br /> 
-    Prazo: <strong>'.$datainicio.'</strong>&nbsp;a&nbsp;<strong>'.$datafim.'</strong><br /> 
-    e-Mail: <strong>'.$email.'</strong><br />'; 
-    if(!$clone_email->send()) {echo 'Mailer Error: ' . $clone_email->ErrorInfo; exit;} 
+   /* $clone_email = clone $mail;
+
+    $clone_email->addAddress($email);
+    $clone_email->Subject = 'O aluno '.$firstname.', não acessou o curso';
+    $clone_email->Body    = '
+    O aluno '.$firstname.', ainda não acesou o curso <br /><br />
+    Curso: <strong>'.$nomecurso.'</strong><br />
+    Prazo: <strong>'.$datainicio.'</strong>&nbsp;a&nbsp;<strong>'.$datafim.'</strong><br />
+    e-Mail: <strong>'.$email.'</strong><br />';
+    if(!$clone_email->send()) {echo 'Mailer Error: ' . $clone_email->ErrorInfo; exit;}
     echo 'Message has been sent <br>';*/
 }
-
