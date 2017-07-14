@@ -5,7 +5,7 @@ require_once '../lib/phpmailer/class.smtp.php';
 
 $mail = new PHPMailer;
 
-$mail->SMTPDebug = 0;
+$mail->SMTPDebug = 1;
 
 $mail->isSMTP();
 $mail->CharSet = 'UTF-8';
